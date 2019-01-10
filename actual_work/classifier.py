@@ -7,6 +7,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import RandomizedSearchCV
+import numpy as np
 
 class Classifier:
     def __init__(self,train_tweets,train_labels,test_tweets,test_labels,mode):
@@ -16,6 +18,7 @@ class Classifier:
         self.train_tweets = train_tweets
         self.test_tweets = test_tweets
         features_train, features_test = Classifier.extract_features(train_tweets, test_tweets)
+        Classifier.Tuning(features_train,train_labels)
         if self.mode == 1:
             SVMpredictLabels = Classifier.SVMClassifier(features_train, train_labels, features_test)
             print(Classifier.getAccuracy(SVMpredictLabels, test_labels))
@@ -52,7 +55,8 @@ class Classifier:
 
 
     def RandomForest_Classifier(features_train, labels_train, features_test):
-        clf = RandomForestClassifier(n_estimators=100)
+        clf = RandomForestClassifier(n_estimators=1600,min_samples_split = 2, min_samples_leaf = 4,max_features = 'sqrt',         
+        max_depth = 110)
         clf.fit(features_train, labels_train)
         return clf.predict(features_test)
 
@@ -95,3 +99,37 @@ class Classifier:
         tree_clf.fit(trainData, train_labels)
         predict = tree_clf.predict(testData)
         return predict
+    
+    def Tuning(trainFeatures,trainLabel):
+        # Number of trees in random forest
+        n_estimators = [int(x) for x in np.linspace(start = 200, stop = 2000, num = 10)]
+        # Number of features to consider at every split
+        max_features = ['auto', 'sqrt']
+        # Maximum number of levels in tree
+        max_depth = [int(x) for x in np.linspace(10, 110, num = 11)]
+        max_depth.append(None)
+        # Minimum number of samples required to split a node
+        min_samples_split = [2, 5, 10]
+        # Minimum number of samples required at each leaf node
+        min_samples_leaf = [1, 2, 4]
+        # Method of selecting samples for training each tree
+        bootstrap = [True, False]
+        # Create the random grid
+        random_grid = {'n_estimators': n_estimators,
+                       'max_features': max_features,
+                       'max_depth': max_depth,
+                       'min_samples_split': min_samples_split,
+                       'min_samples_leaf': min_samples_leaf,
+                       'bootstrap': bootstrap}
+        # Use the random grid to search for best hyperparameters
+        # First create the base model to tune
+        rf = RandomForestClassifier()
+        # Random search of parameters, using 3 fold cross validation, 
+        # search across 100 different combinations, and use all available cores
+        #cv---> 3dad el folds , n_iter kam combination ygrbha , estimator eh hwa classifier el 7y3ml tuning , n_jobs 3dad el cores               el 7ysh3'lha
+        rf_random = RandomizedSearchCV(estimator = rf, param_distributions = random_grid, n_iter = 60, cv = 3, verbose=2,              
+        random_state=42, n_jobs=-1)
+
+        # Fit the random search model
+        rf_random.fit(trainFeatures, trainLabel)
+        print(rf_random.best_params_)
