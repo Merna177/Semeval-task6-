@@ -1,3 +1,5 @@
+import matplotlib.pyplot as plt
+
 from sklearn.metrics import confusion_matrix
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.svm import LinearSVC
@@ -9,6 +11,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import RandomizedSearchCV
 import numpy as np
+from sklearn.model_selection import cross_val_score
 
 class Classifier:
     def __init__(self,train_tweets,train_labels,test_tweets,test_labels,mode):
@@ -18,7 +21,8 @@ class Classifier:
         self.train_tweets = train_tweets
         self.test_tweets = test_tweets
         features_train, features_test = Classifier.extract_features(train_tweets, test_tweets)
-        Classifier.Tuning(features_train,train_labels)
+        #Classifier.Tuning(features_train,train_labels)
+        Classifier.TuningForKnnAndPlotting(features_train,train_labels)
         if self.mode == 1:
             SVMpredictLabels = Classifier.SVMClassifier(features_train, train_labels, features_test)
             print(Classifier.getAccuracy(SVMpredictLabels, test_labels))
@@ -55,7 +59,7 @@ class Classifier:
 
 
     def RandomForest_Classifier(features_train, labels_train, features_test):
-        clf = RandomForestClassifier(n_estimators=1600,min_samples_split = 2, min_samples_leaf = 4,max_features = 'sqrt',         
+        clf = RandomForestClassifier(n_estimators=600,min_samples_split = 2, min_samples_leaf = 2,max_features = 'sqrt',         
         max_depth = 110)
         clf.fit(features_train, labels_train)
         return clf.predict(features_test)
@@ -74,7 +78,7 @@ class Classifier:
 
 
     def KNNClassifier(features_train, labels_train, features_test):
-        clf = KNeighborsClassifier(n_neighbors=3)
+        clf = KNeighborsClassifier(n_neighbors=5)
         clf.fit(features_train, labels_train)
         return clf.predict(features_test)
 
@@ -101,35 +105,52 @@ class Classifier:
         return predict
     
     def Tuning(trainFeatures,trainLabel):
-        # Number of trees in random forest
-        n_estimators = [int(x) for x in np.linspace(start = 200, stop = 2000, num = 10)]
-        # Number of features to consider at every split
-        max_features = ['auto', 'sqrt']
-        # Maximum number of levels in tree
-        max_depth = [int(x) for x in np.linspace(10, 110, num = 11)]
-        max_depth.append(None)
-        # Minimum number of samples required to split a node
-        min_samples_split = [2, 5, 10]
-        # Minimum number of samples required at each leaf node
-        min_samples_leaf = [1, 2, 4]
-        # Method of selecting samples for training each tree
-        bootstrap = [True, False]
-        # Create the random grid
-        random_grid = {'n_estimators': n_estimators,
+          # Number of trees in random forest
+          n_estimators = [int(x) for x in np.linspace(start = 200, stop = 2000, num = 10)]
+          # Number of features to consider at every split
+          max_features = ['auto', 'sqrt']
+          # Maximum number of levels in tree
+          max_depth = [int(x) for x in np.linspace(10, 110, num = 11)]
+          max_depth.append(None)
+          # Minimum number of samples required to split a node
+          min_samples_split = [2, 5, 10]
+          # Minimum number of samples required at each leaf node
+          min_samples_leaf = [1, 2, 4]
+          # Method of selecting samples for training each tree
+          bootstrap = [True, False]
+          # Create the random grid
+          random_grid = {'n_estimators': n_estimators,
                        'max_features': max_features,
                        'max_depth': max_depth,
                        'min_samples_split': min_samples_split,
                        'min_samples_leaf': min_samples_leaf,
                        'bootstrap': bootstrap}
-        # Use the random grid to search for best hyperparameters
-        # First create the base model to tune
-        rf = RandomForestClassifier()
-        # Random search of parameters, using 3 fold cross validation, 
-        # search across 100 different combinations, and use all available cores
-        #cv---> 3dad el folds , n_iter kam combination ygrbha , estimator eh hwa classifier el 7y3ml tuning , n_jobs 3dad el cores               el 7ysh3'lha
-        rf_random = RandomizedSearchCV(estimator = rf, param_distributions = random_grid, n_iter = 60, cv = 3, verbose=2,              
-        random_state=42, n_jobs=-1)
+          # Use the random grid to search for best hyperparameters
+          # First create the base model to tune
+          rf = RandomForestClassifier()
+          # Random search of parameters, using 3 fold cross validation, 
+          # search across 100 different combinations, and use all available cores
+          #cv---> 3dad el folds , n_iter kam combination ygrbha , estimator eh hwa classifier el 7y3ml tuning , n_jobs 3dad el cores                 el 7ysh3'lha verbose--->btktb m3lomat 3n running
+          rf_random = RandomizedSearchCV(estimator = rf, param_distributions = random_grid, n_iter = 50, cv = 4, verbose=0,              
+          random_state=42, n_jobs=-1)
 
-        # Fit the random search model
-        rf_random.fit(trainFeatures, trainLabel)
-        print(rf_random.best_params_)
+          # Fit the random search models
+          rf_random.fit(trainFeatures, trainLabel)
+          print(rf_random.best_params_)
+     
+    def TuningForKnnAndPlotting(trainFeatures,trainLabel):
+          neighbors = list(range(1,50))
+          cv_scores = []
+          for k in neighbors:
+            knn = KNeighborsClassifier(n_neighbors=k)
+            scores = cross_val_score(knn, trainFeatures, trainLabel, cv=10, scoring='accuracy')
+            cv_scores.append(scores.mean())
+          MSE = [1 - x for x in cv_scores]
+          optimal_k = neighbors[cv_scores.index(min(cv_scores))]
+          print(optimal_k)
+          plt.plot(neighbors, cv_scores)
+          plt.xlabel('Number of Neighbors K')
+          plt.ylabel('Misclassification Error')
+          plt.show()
+
+        
