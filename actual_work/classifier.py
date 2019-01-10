@@ -78,7 +78,7 @@ class Classifier:
 
 
     def KNNClassifier(features_train, labels_train, features_test):
-        clf = KNeighborsClassifier(n_neighbors=5)
+        clf = KNeighborsClassifier(n_neighbors=19)
         clf.fit(features_train, labels_train)
         return clf.predict(features_test)
 
@@ -146,9 +146,9 @@ class Classifier:
             scores = cross_val_score(knn, trainFeatures, trainLabel, cv=10, scoring='accuracy')
             cv_scores.append(scores.mean())
           MSE = [1 - x for x in cv_scores]
-          optimal_k = neighbors[cv_scores.index(min(cv_scores))]
+          optimal_k = neighbors[MSE.index(min(MSE))]
           print(optimal_k)
-          plt.plot(neighbors, cv_scores)
+          plt.plot(neighbors, MSE)
           plt.xlabel('Number of Neighbors K')
           plt.ylabel('Misclassification Error')
           plt.show()
