@@ -59,8 +59,7 @@ class Classifier:
 
 
     def RandomForest_Classifier(features_train, labels_train, features_test):
-        clf = RandomForestClassifier(n_estimators=600,min_samples_split = 2, min_samples_leaf = 2,max_features = 'sqrt',         
-        max_depth = 110)
+        clf = RandomForestClassifier(n_estimators=600)
         clf.fit(features_train, labels_train)
         return clf.predict(features_test)
 
