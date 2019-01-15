@@ -79,12 +79,13 @@ class Classifier:
 
 
     def KNNClassifier(features_train, labels_train, features_test):
-        clf = KNeighborsClassifier(n_neighbors=19)
+        clf = KNeighborsClassifier(n_neighbors = 19)
         clf.fit(features_train, labels_train)
         return clf.predict(features_test)
 
     def TreeClassifier(features_train, labels_train, features_test):
-        tree_clf = DecisionTreeClassifier(max_depth=Classifier.TuningForDTandPlotting(features_train,labels_train))
+        ret = Classifier.TuningForDTandPlotting(features_train,labels_train)
+        tree_clf = DecisionTreeClassifier(criterion = str(ret[1]) , max_depth = int(ret[0]))
         tree_clf.fit(features_train, labels_train)
         predict = tree_clf.predict(features_test)
         return predict
@@ -166,18 +167,32 @@ class Classifier:
         """
         
         depth = list(range(1,100))
-        cv_scores = []
+        cv_scores_gini = []
+        cv_scores_entropy = []
+        ans = ""
         for m in depth:
-            dt = DecisionTreeClassifier(max_depth = m)
-            scores = cross_val_score(dt, trainFeatures, trainLabel, cv=5, scoring='accuracy')
-            cv_scores.append(scores.mean())
-        MSE = [1 - x for x in cv_scores]
-        optimal_d = depth[MSE.index(min(MSE))]
-        print(optimal_d)
-        plt.plot(depth, MSE)
-        plt.xlabel('Tree depth')
+            dt_gini = DecisionTreeClassifier(max_depth = m)
+            dt_entropy = DecisionTreeClassifier(criterion = 'entropy',max_depth = m)
+            scores_gini = cross_val_score(dt_gini, trainFeatures, trainLabel, cv=5, scoring='accuracy')
+            scores_entropy = cross_val_score(dt_gini, trainFeatures, trainLabel, cv=5, scoring='accuracy')
+            cv_scores_gini.append(scores_gini.mean())
+            cv_scores_entropy.append(scores_entropy.mean())
+        MSE_entropy = [1 - x for x in cv_scores_entropy]
+        MSE_gini = [1 - x for x in cv_scores_gini]
+        optimal_d_entropy = depth[MSE_entropy.index(min(MSE_entropy))]
+        optimal_d_gini = depth[MSE_gini.index(min(MSE_gini))]
+        if(optimal_d_entropy >= optimal_d_gini):
+            print("Entropy: " + str(optimal_d_entropy) + "\n")
+            ans = "entropy"
+        else:
+            print("Gini: " + str(optimal_d_gini) + "\n")
+            ans = "gini"
+        plt.plot(depth, MSE_entropy)
+        plt.xlabel('Tree depth: Entropy')
         plt.ylabel('Misclassification Error')
         plt.show()
-        return (optimal_d)
-        
-        
+        plt.plot(depth, MSE_gini)
+        plt.xlabel('Tree depth: Gini')
+        plt.ylabel('Misclassification Error')
+        plt.show()
+        return ([max([optimal_d_entropy,optimal_d_gini]),str(ans)])
