@@ -11,6 +11,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import RandomizedSearchCV
 import numpy as np
+import pandas as pd
 from sklearn.model_selection import cross_val_score
 
 class Classifier:
@@ -22,7 +23,7 @@ class Classifier:
         self.test_tweets = test_tweets
         features_train, features_test = Classifier.extract_features(train_tweets, test_tweets)
         #Classifier.Tuning(features_train,train_labels)
-        Classifier.TuningForKnnAndPlotting(features_train,train_labels)
+       # Classifier.TuningForKnnAndPlotting(features_train,train_labels)
         if self.mode == 1:
             SVMpredictLabels = Classifier.SVMClassifier(features_train, train_labels, features_test)
             print(Classifier.getAccuracy(SVMpredictLabels, test_labels))
@@ -39,7 +40,7 @@ class Classifier:
             KNNpredictLabels = Classifier.KNNClassifier(features_train, train_labels, features_test)
             print(Classifier.getAccuracy(KNNpredictLabels, test_labels))
         elif self.mode == 6:
-            TreepredictLabels = Classifier.TreeClassifier(features_train, train_labels, features_test)
+            TreepredictLabels = Classifier.TreeClassifier(features_train,train_labels,features_test)
             print(Classifier.getAccuracy(TreepredictLabels, test_labels))
         else:
             print("Please select a valid classifier")
@@ -82,6 +83,11 @@ class Classifier:
         clf.fit(features_train, labels_train)
         return clf.predict(features_test)
 
+    def TreeClassifier(features_train, labels_train, features_test):
+        tree_clf = DecisionTreeClassifier(max_depth=Classifier.TuningForDTandPlotting(features_train,labels_train))
+        tree_clf.fit(features_train, labels_train)
+        predict = tree_clf.predict(features_test)
+        return predict
 
     def getAccuracy(output_labels, actual_labels):
         return accuracy_score(output_labels, actual_labels)
@@ -98,11 +104,6 @@ class Classifier:
         Y = vectorizer.transform(ourTestTweets)
         return X,Y;
 
-    def TreeClassifier(trainData,train_labels,testData):
-        tree_clf = DecisionTreeClassifier(max_depth=40)
-        tree_clf.fit(trainData, train_labels)
-        predict = tree_clf.predict(testData)
-        return predict
     
     def Tuning(trainFeatures,trainLabel):
           # Number of trees in random forest
@@ -152,5 +153,31 @@ class Classifier:
           plt.xlabel('Number of Neighbors K')
           plt.ylabel('Misclassification Error')
           plt.show()
-
+        
+    def TuningForDTandPlotting(trainFeatures,trainLabel):
+        """
+        param ={"criterion": ["gini","entropy"]}
+        tree = DecisionTreeClassifier()
+        tree_cv = RandomizedSearchCV(tree, param, cv = 5)
+        tree_cv.fit(trainFeatures, trainLabel)
+        print("Best parameters and score: ")
+        print(tree_cv.best_params_) #gets best parameteres ->3, entropy
+        print(tree_cv.best_score_)
+        """
+        
+        depth = list(range(1,100))
+        cv_scores = []
+        for m in depth:
+            dt = DecisionTreeClassifier(max_depth = m)
+            scores = cross_val_score(dt, trainFeatures, trainLabel, cv=5, scoring='accuracy')
+            cv_scores.append(scores.mean())
+        MSE = [1 - x for x in cv_scores]
+        optimal_d = depth[MSE.index(min(MSE))]
+        print(optimal_d)
+        plt.plot(depth, MSE)
+        plt.xlabel('Tree depth')
+        plt.ylabel('Misclassification Error')
+        plt.show()
+        return (optimal_d)
+        
         
