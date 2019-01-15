@@ -187,12 +187,13 @@ class Classifier:
         else:
             print("Gini: " + str(optimal_d_gini) + "\n")
             ans = "gini"
-        plt.plot(depth, MSE_entropy)
-        plt.xlabel('Tree depth: Entropy')
+        plot1, = plt.plot(depth, MSE_entropy, label ='Entropy')
+        plt.xlabel('Tree depth')
         plt.ylabel('Misclassification Error')
         plt.show()
-        plt.plot(depth, MSE_gini)
-        plt.xlabel('Tree depth: Gini')
+        plot2, = plt.plot(depth, MSE_gini, label = 'Gini')
+        plt.xlabel('Tree depth')
         plt.ylabel('Misclassification Error')
+        plt.legend(handles=[plot1, plot2])
         plt.show()
         return ([max([optimal_d_entropy,optimal_d_gini]),str(ans)])
