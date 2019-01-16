@@ -151,8 +151,28 @@ class Classifier:
         lr_random.fit(trainFeatures, trainLabel)
         print(lr_random.best_params_)
         print(lr_random.best_score_)
+#         print(lr_random.cv_results_)
         
-        print("not so fast")  
+        scores=[]
+        Cs=[]
+        finalC=[]
+       
+        scores=lr_random.cv_results_['mean_test_score']
+        Cs=lr_random.cv_results_['params']
+        for c in Cs:
+            if 'C' in c:
+                finalC.append(c['C'])
+        
+            
+        print(scores)
+        print(finalC)
+        
+        plt.plot(finalC, scores)
+        plt.xlabel('Value of C')
+        plt.ylabel('Score')
+        plt.show()
+        
+        
         return lr_random.best_params_['C']
         
     def TuningForKnnAndPlotting(trainFeatures,trainLabel):
