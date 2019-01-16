@@ -10,6 +10,8 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import RandomizedSearchCV
+from sklearn.linear_model import LogisticRegressionCV
+from scipy.stats import expon
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import cross_val_score
@@ -22,6 +24,11 @@ class Classifier:
         self.train_tweets = train_tweets
         self.test_tweets = test_tweets
         features_train, features_test = Classifier.extract_features(train_tweets, test_tweets)
+
+        #         Classifier.Tuning(features_train,train_labels)
+        c= Classifier.LRTuning(features_train,train_labels)
+#         Classifier.TuningForKnnAndPlotting(features_train,train_labels)
+
         if self.mode == 1:
             SVMpredictLabels = Classifier.SVMClassifier(features_train, train_labels, features_test)
             print(Classifier.getAccuracy(SVMpredictLabels, test_labels))
@@ -29,7 +36,7 @@ class Classifier:
             RFpredictLabels = Classifier.RandomForest_Classifier(features_train, train_labels, features_test)
             print(Classifier.getAccuracy(RFpredictLabels, test_labels))
         elif self.mode == 3:
-            LRpredictLabels = Classifier.LogisticalRegression_Classifier(features_train, train_labels, features_test)
+            LRpredictLabels = Classifier.LogisticalRegression_Classifier(features_train, train_labels, features_test,c)
             print(Classifier.getAccuracy(LRpredictLabels, test_labels))
         elif self.mode == 4:
             NBpredictLabels = Classifier.NaiveBayesClassifier(features_train, train_labels, features_test)
@@ -63,8 +70,8 @@ class Classifier:
         return clf.predict(features_test)
 
 
-    def LogisticalRegression_Classifier(features_train, labels_train, features_test):
-        clf = LogisticRegression(random_state=0, solver='lbfgs', multi_class='multinomial')
+    def LogisticalRegression_Classifier(features_train, labels_train, features_test,tune):
+        clf = LogisticRegression(C=1.4, solver='liblinear', multi_class='auto')
         clf.fit(features_train, labels_train)
         return clf.predict(features_test)
 
@@ -124,17 +131,54 @@ class Classifier:
                        'min_samples_split': min_samples_split,
                        'min_samples_leaf': min_samples_leaf,
                        'bootstrap': bootstrap}
-        # Use the random grid to search for best hyperparameters
-        # First create the base model to tune
-        rf = RandomForestClassifier()
-        # Random search of parameters, using 3 fold cross validation, 
-        # search across 100 different combinations, and use all available cores
-        #cv---> 3dad el folds , n_iter kam combination ygrbha , estimator eh hwa classifier el 7y3ml tuning , n_jobs 3dad el cores               el 7ysh3'lha verbose--->btktb m3lomat 3n running
-        rf_random = RandomizedSearchCV(estimator = rf, param_distributions = random_grid, n_iter = 50, cv = 4, verbose=0,                       random_state=42, n_jobs=-1)
-         # Fit the random search models
-        rf_random.fit(trainFeatures, trainLabel)
-        print(rf_random.best_params_)
-   
+          # Use the random grid to search for best hyperparameters
+          # First create the base model to tune
+          rf = RandomForestClassifier()
+          # Random search of parameters, using 3 fold cross validation, 
+          # search across 100 different combinations, and use all available cores
+          #cv---> 3dad el folds , n_iter kam combination ygrbha , estimator eh hwa classifier el 7y3ml tuning , n_jobs 3dad el cores                 el 7ysh3'lha verbose--->btktb m3lomat 3n running
+          rf_random = RandomizedSearchCV(estimator = rf, param_distributions = random_grid, n_iter = 50, cv = 4, verbose=0,              
+          random_state=42, n_jobs=-1, refit=True)
+
+          # Fit the random search models
+          rf_random.fit(trainFeatures, trainLabel)
+          print(rf_random.best_params_)
+     
+    def LRTuning(trainFeatures,trainLabel):
+
+        np.set_printoptions(formatter={'float_kind':lambda x: "%.4f" % x})
+        
+        lr = LogisticRegression()
+        lr_params = {'C': expon()}
+        lr_random = RandomizedSearchCV(estimator = lr, param_distributions = lr_params, n_iter = 50, cv = 5, verbose=0)
+        lr_random.fit(trainFeatures, trainLabel)
+        print(lr_random.best_params_)
+        print(lr_random.best_score_)
+#         print(lr_random.cv_results_)
+        
+        scores=[]
+        Cs=[]
+        finalC=[]
+       
+        scores=lr_random.cv_results_['mean_test_score']
+        Cs=lr_random.cv_results_['params']
+        for c in Cs:
+            if 'C' in c:
+                finalC.append(c['C'])
+        
+            
+        print(scores)
+        print(finalC)
+        
+        plt.plot(finalC, scores)
+        plt.xlabel('Value of C')
+        plt.ylabel('Score')
+        plt.show()
+        
+        
+        return lr_random.best_params_['C']
+        
+
     def TuningForKnnAndPlotting(trainFeatures,trainLabel):
         neighbors = list(range(1,50))
         cv_scores = []
